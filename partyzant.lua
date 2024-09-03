@@ -1,111 +1,71 @@
-local label, gauge
+partyzant = partyzant or {
+  label = nil,
+  gauge = nil,
+  room_handler = nil,
+  time_handler = nil
+}
 
--- Sprawdza, czy lokalizacja zawiera słowa związane z lasem
-local function isForestLocation(location)
+function partyzant:isForestLocation()
+  if not amap.localization.current_short then
+    return false
+  end
   local forestKeywords = {"las", "puszcza", "bor", "knieja"}
-  local lowerLocation = location:lower()
+  local shortString = amap.localization.current_short
+  local lowerLocation = shortString:lower()
   for _, keyword in ipairs(forestKeywords) do
-    if string.find(lowerLocation, keyword) then return true end
+    if string.find(lowerLocation, keyword) then
+      return true
+    end
   end
   return false
 end
 
--- Tworzy nowy label
-local function createLabel()
-  print("Tworzenie labela")
-  label = Geyser.Label:new({
-    name = "myLabel", x = "-13%", y = "75%", width = "10%", height = "10%", message = "", fontSize = 20
-  })
-end
-
--- Tworzy nowy wskaźnik
-local function createGauge()
-  print("Tworzenie gauge")
-  gauge = Geyser.Gauge:new({
-    name = "myGauge", x = "-13%", y = "85%", width = "10%", height = "1%"
-  })
-end
-
--- Aktualizuje tło labela
-local function updateLabelBackground(isDaylight)
-  print("Aktualizacja tła labela")
-  local imagePath = isDaylight and 'sun.png' or 'moon.png'
-  local fullPath = string.format("%s/plugins/partyzant/%s", getMudletHomeDir(), imagePath)
-  label:setStyleSheet(string.format("border-image: url('%s'); qproperty-alignment: 'AlignRight | AlignVCenter';", fullPath))
-end
-
--- Aktualizuje wiadomość labela na podstawie nowej lokalizacji
-local function updateLabelMessage()
-  print("Aktualizacja wiadomości labela")
-  label:echo("")
-  local currentLocation = amap.localization.current_short
-  print("Bieżąca lokalizacja: " .. (currentLocation or "brak"))
-  if isForestLocation(currentLocation) then
-    label:echo("🌳")
-  end
-end
-
--- Aktualizuje UI na podstawie nowej lokalizacji
-local function updateUI()
-  print("Aktualizacja UI")
-  if not label then createLabel() end
-  if not gauge then createGauge() end
-  updateLabelMessage()
-  local isDaylight = gmcp.room.time.daylight
-  scripts.ui:info_daylight_update(isDaylight)
-  updateLabelBackground(isDaylight)
-end
-
--- Obsługuje stan ukrycia
-function hidden_state(name, seconds)
-  gauge:setValue(math.max(0, seconds / 15 * 100))
-end
-
-function timer_func_skrypty_hidden_timer()
+function partyzant.timer_func_skrypty_hidden_timer()
   local limit = 15
   local dt = getEpoch() - scripts.ui.hidden_state_epoch
   if dt >= limit then
     stopNamedTimer("arkadia", "hidden_timer")
-    scripts.ui.states_window_nav_states["hidden_state"] = ""
-    scripts.ui:info_hidden_update("")
-    gauge:setValue(0)
+    partyzant.gauge:setValue(0)
   else
     local val = string.format("%i", ateam.options.countdown and (limit - dt) or dt)
-    scripts.ui.states_window_nav_states["hidden_state"] = "<red>" .. val
-    scripts.ui:info_hidden_update(val)
-    gauge:setValue((limit - dt) / limit * 100)
+    partyzant.gauge:setValue((limit - dt) / limit * 100)
   end
-  ateam:print_status()
-  scripts.ui:navbar_updates("hidden_state")
-  raiseEvent("hidden_state", dt)
 end
 
-if scripts.event_handlers["skrypty/ui/gmcp_handlers/hidden_state.hidden_state.hidden_state"] then
-  killAnonymousEventHandler(scripts.event_handlers["skrypty/ui/gmcp_handlers/hidden_state.hidden_state.hidden_state"])
+function partyzant:init()
+  partyzant.label = Geyser.Label:new({name = "myLabel", x = "-13%", y = "75%", width = "10%", height = "10%", message = "", fontSize = 20})
+  partyzant.gauge = Geyser.Gauge:new({name = "myGauge", x = "-13%", y = "85%", width = "10%", height = "1%"})
+
+  partyzant.room_handler = scripts.event_register:register_singleton_event_handler(partyzant.room_handler, "amapCompassDrawingDone", function() partyzant:updateLabelMessage() end)
+  partyzant.time_handler = scripts.event_register:register_singleton_event_handler(partyzant.time_handler, "gmcp.room.time", function() partyzant:updateLabelBackground() end)
+
+  registerNamedTimer("arkadia", "hidden_timer", 0.1, partyzant.timer_func_skrypty_hidden_timer, true)
+  stopNamedTimer("arkadia", "hidden_timer")
 end
 
-scripts.ui.hidden_state_epoch = 0
-scripts.event_handlers["skrypty/ui/gmcp_handlers/hidden_state.hidden_state.hidden_state"] = registerAnonymousEventHandler("hidden_state", hidden_state)
+--room time
+function partyzant:updateLabelBackground()
+  local imagePath = 'moon.png'
+  if gmcp.room.time.daylight == true then
+    imagePath = 'sun.png'
+  end
+  local fullPath = string.format("%s/plugins/partyzant/%s", getMudletHomeDir(), imagePath)
+  partyzant.label:setStyleSheet(string.format("border-image: url('%s'); qproperty-alignment: 'AlignRight | AlignVCenter';", fullPath))
+end
 
-registerNamedTimer("arkadia", "hidden_timer", 0.1, timer_func_skrypty_hidden_timer, true)
-stopNamedTimer("arkadia", "hidden_timer")
+--room info / compass drawing
+function partyzant:updateLabelMessage()
+  partyzant.label:echo("")
+  local currentLocation = amap.localization.current_short
+  if amap.localization.current_short and partyzant:isForestLocation() then
+    partyzant.label:echo("🌳")
+  end
+end
 
--- Inicjalizacja UI
-print("Inicjalizacja UI")
-updateUI()
+function partyzant:hidden_state(name, seconds)
+  self.gauge:setValue(math.max(0, seconds / 15 * 100))
+end
 
--- Rejestracja event handlera dla zmiany lokacji
-print("Rejestracja event handlera dla zmiany lokacji")
-scripts.event_register:register_event_handler("gmcp.room.info", function()
-  print("Event handler: gmcp.room.info")
-  tempTimer(0.1, updateUI)
-end)
 
--- Rejestracja event handlera dla zmiany pory dnia
-print("Rejestracja event handlera dla zmiany pory dnia")
-scripts.event_register:register_event_handler("gmcp.room.time", function()
-  print("Event handler: gmcp.room.time")
-  local isDaylight = gmcp.room.time.daylight
-  scripts.ui:info_daylight_update(isDaylight)
-  updateLabelBackground(isDaylight)
-end)
+
+partyzant:init()
