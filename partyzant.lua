@@ -9,7 +9,7 @@ function partyzant:isForestLocation()
   if not amap.localization.current_short then
     return false
   end
-  local forestKeywords = {"las", "puszcza", "bor", "knieja", "lesie", "lasu", "puszczy", "boru"}
+  local forestKeywords = {"las", "puszcza", "bor", "knieja", "lesie", "lasu", "puszczy", "boru", "tajdze", "lesnej"}
   local shortString = amap.localization.current_short
   local lowerLocation = shortString:lower()
   for _, keyword in ipairs(forestKeywords) do
@@ -26,7 +26,7 @@ function partyzant.timer_func_skrypty_hidden_timer()
   if dt >= limit then
     stopNamedTimer("arkadia", "hidden_timer")
     partyzant.gauge:setValue(0)
-    partyzant.label:echo("🕵")
+    partyzant:updateLabelMessage()
   else
     local val = string.format("%i", ateam.options.countdown and (limit - dt) or dt)
     partyzant.gauge:setValue((limit - dt) / limit * 100)
@@ -52,6 +52,7 @@ function partyzant:init()
 
 
   partyzant.room_handler = scripts.event_register:register_singleton_event_handler(partyzant.room_handler, "amapCompassDrawingDone", function() partyzant:updateLabelMessage() end)
+  partyzant.gmcp_handler = scripts.event_register:register_singleton_event_handler(partyzant.gmcp_handler, "gmcp_parsing_finished", function() partyzant:updateLabelMessage() end)
   partyzant.time_handler = scripts.event_register:register_singleton_event_handler(partyzant.time_handler, "gmcp.room.time", function() partyzant:updateLabelBackground() end)
 
   registerNamedTimer("arkadia", "hidden_timer", 0.1, partyzant.timer_func_skrypty_hidden_timer, true)
@@ -70,11 +71,17 @@ end
 
 --room info / compass drawing
 function partyzant:updateLabelMessage()
-  partyzant.label:echo("")
+  local myString = ""
+--  partyzant.label:echo("")
   local currentLocation = amap.localization.current_short
   if amap.localization.current_short and partyzant:isForestLocation() then
-    partyzant.label:echo("🌳")
+    myString =  "🌳"
   end
+  if ateam.objs[ateam.my_id].hidden == true then
+     myString = myString .. "🕵"
+  end
+  
+  partyzant.label:echo(myString)
 end
 
 function partyzant:hidden_state(name, seconds)
