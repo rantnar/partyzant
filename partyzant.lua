@@ -37,7 +37,7 @@ function partyzant:init()
   local footer_info_core = scripts.ui.footer_info_core
   partyzant.label = Geyser.Label:new({
     name = "myLabel",
-    x = "100%-125px", y = "100%-220px",
+    x = "100%-125px", y = "100%-230px",
     width = "100px", height = "100px",
     message = "",
     fontSize = 20,
@@ -45,7 +45,7 @@ function partyzant:init()
   })
   partyzant.gauge = Geyser.Gauge:new({
     name = "myGauge",
-    x = "100%-125px", y = "100%-120px",
+    x = "100%-125px", y = "100%-130px",
     width = "100px", height = "10px",
     container = footer_info_core
   })
