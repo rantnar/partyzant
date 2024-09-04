@@ -26,7 +26,7 @@ function partyzant.timer_func_skrypty_hidden_timer()
   if dt >= limit then
     stopNamedTimer("arkadia", "hidden_timer")
     partyzant.gauge:setValue(0)
-    partyzant.label:echo("&#128373;")
+    partyzant.label:echo("🕵")
   else
     local val = string.format("%i", ateam.options.countdown and (limit - dt) or dt)
     partyzant.gauge:setValue((limit - dt) / limit * 100)
