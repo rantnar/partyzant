@@ -9,7 +9,7 @@ function partyzant:isForestLocation()
   if not amap.localization.current_short then
     return false
   end
-  local forestKeywords = {"las", "puszcza", "bor", "knieja"}
+  local forestKeywords = {"las", "puszcza", "bor", "knieja", "lesie", "lasu", "puszczy", "boru"}
   local shortString = amap.localization.current_short
   local lowerLocation = shortString:lower()
   for _, keyword in ipairs(forestKeywords) do
@@ -26,6 +26,7 @@ function partyzant.timer_func_skrypty_hidden_timer()
   if dt >= limit then
     stopNamedTimer("arkadia", "hidden_timer")
     partyzant.gauge:setValue(0)
+    partyzant.label:echo("&#128373;")
   else
     local val = string.format("%i", ateam.options.countdown and (limit - dt) or dt)
     partyzant.gauge:setValue((limit - dt) / limit * 100)
@@ -33,8 +34,22 @@ function partyzant.timer_func_skrypty_hidden_timer()
 end
 
 function partyzant:init()
-  partyzant.label = Geyser.Label:new({name = "myLabel", x = "-13%", y = "75%", width = "10%", height = "10%", message = "", fontSize = 20})
-  partyzant.gauge = Geyser.Gauge:new({name = "myGauge", x = "-13%", y = "85%", width = "10%", height = "1%"})
+  local footer_info_core = scripts.ui.footer_info_core
+  partyzant.label = Geyser.Label:new({
+    name = "myLabel",
+    x = "100%-125px", y = "100%-220px",
+    width = "100px", height = "100px",
+    message = "",
+    fontSize = 20,
+    container = footer_info_core
+  })
+  partyzant.gauge = Geyser.Gauge:new({
+    name = "myGauge",
+    x = "100%-125px", y = "100%-120px",
+    width = "100px", height = "10px",
+    container = footer_info_core
+  })
+
 
   partyzant.room_handler = scripts.event_register:register_singleton_event_handler(partyzant.room_handler, "amapCompassDrawingDone", function() partyzant:updateLabelMessage() end)
   partyzant.time_handler = scripts.event_register:register_singleton_event_handler(partyzant.time_handler, "gmcp.room.time", function() partyzant:updateLabelBackground() end)
@@ -65,7 +80,6 @@ end
 function partyzant:hidden_state(name, seconds)
   self.gauge:setValue(math.max(0, seconds / 15 * 100))
 end
-
 
 
 partyzant:init()
