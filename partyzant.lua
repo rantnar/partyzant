@@ -1,6 +1,7 @@
 partyzant = partyzant or {
-  label = nil,
+  background = nil,
   gauge = nil,
+  states = nil,
   room_handler = nil,
   time_handler = nil
 }
@@ -35,20 +36,31 @@ end
 
 function partyzant:init()
   local footer_info_core = scripts.ui.footer_info_core
-  partyzant.label = Geyser.Label:new({
-    name = "myLabel",
-    x = "100%-125px", y = "100%-230px",
-    width = "100px", height = "100px",
+  partyzant.background = Geyser.Label:new({
+    name = "bg",
+    x = "100%-65px", y = "0",
+    width = "50px", height = "50px",
     message = "",
     fontSize = 20,
     container = footer_info_core
   })
+  
   partyzant.gauge = Geyser.Gauge:new({
     name = "myGauge",
-    x = "100%-125px", y = "100%-130px",
-    width = "100px", height = "10px",
-    container = footer_info_core
-  })
+    x = "0", y = "50px",
+    width = "50px", height = "5px",
+    
+  }, partyzant.background)
+  
+  partyzant.states = Geyser.Label:new({
+    name = "st",
+    x = "0", y = "5px",
+    width = "50px", height = "20px",
+    message = "",
+    fontSize = 11,
+  },partyzant.gauge)
+
+  partyzant.states:setStyleSheet("background-color: transparent;")
 
 
   partyzant.room_handler = scripts.event_register:register_singleton_event_handler(partyzant.room_handler, "amapCompassDrawingDone", function() partyzant:updateLabelMessage() end)
@@ -66,13 +78,12 @@ function partyzant:updateLabelBackground()
     imagePath = 'sun.png'
   end
   local fullPath = string.format("%s/plugins/partyzant/%s", getMudletHomeDir(), imagePath)
-  partyzant.label:setStyleSheet(string.format("border-image: url('%s'); qproperty-alignment: 'AlignRight | AlignVCenter';", fullPath))
+  partyzant.background:setStyleSheet(string.format("border-image: url('%s'); qproperty-alignment: 'AlignRight | AlignVCenter';", fullPath))
 end
 
 --room info / compass drawing
 function partyzant:updateLabelMessage()
   local myString = ""
---  partyzant.label:echo("")
   local currentLocation = amap.localization.current_short
   if amap.localization.current_short and partyzant:isForestLocation() then
     myString =  "🌳"
@@ -81,7 +92,7 @@ function partyzant:updateLabelMessage()
      myString = myString .. "🕵"
   end
   
-  partyzant.label:echo(myString)
+  partyzant.states:echo(myString)
 end
 
 function partyzant:hidden_state(name, seconds)
